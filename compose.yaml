@@ -1,0 +1,42 @@
+services:
+  transmission:
+    image: linuxserver/transmission:latest
+    labels:
+      traefik.enable:                                              'true'
+      traefik.docker.network:                                      "${TRAEFIK_NETWORK:-traefik}"
+      traefik.http.routers.transmission.rule:                      "$TRAEFIK_RULE"
+      traefik.http.services.transmission.loadbalancer.server.port: '9091'
+    environment:
+      PUID:                  "${PUID:-911}"
+      PGID:                  "${PGID:-911}"
+      TZ:                    "${TZ:-Etc/UTC}"
+      USER:                  "${TRANSMISSION_USER:-admin}"
+      PASS:                  "${TRANSMISSION_PASS:-dummy-password}"
+      PEERPORT:              "${TRANSMISSION_PEERPORT:-51413}"
+      TRANSMISSION_WEB_HOME: ~
+      WHITELIST:             ~
+      HOST_WHITELIST:        ~
+    user: "${PUID:-911}:${PGID:-911}"
+    networks:
+      traefik:
+    volumes:
+      - type:   bind
+        source: ./config
+        target: /config
+        bind:   { create_host_path: true }
+      - type:   bind
+        source: "${TRANSMISSION_DOWNLOADS_DIR:-./downloads}"
+        target: /downloads
+        bind:   { create_host_path: true }
+      - type:   bind
+        source: "${TRANSMISSION_WATCH_DIR:-./watch}"
+        target: /watch
+        bind:   { create_host_path: true }
+    ports:
+      - "${TRANSMISSION_PEERPORT:-51413}:${TRANSMISSION_PEERPORT:-51413}/tcp"
+      - "${TRANSMISSION_PEERPORT:-51413}:${TRANSMISSION_PEERPORT:-51413}/udp"
+    restart: unless-stopped
+
+networks:
+  traefik:
+    name: "${TRAEFIK_NETWORK:-traefik}"
